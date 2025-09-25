@@ -1,22 +1,21 @@
 #!/usr/bin/env just
 
 # --- Settings --- #
-set shell := ["bash", "-euo", "pipefail", "-c"]
-set positional-arguments := true
-set allow-duplicate-variables := true
-set windows-shell := ["C:/Program Files/Git/usr/bin/bash.exe", "-euo", "pipefail", "-c"]
-set dotenv-load := true
+set shell                       := ["nu", "-c"]
+set positional-arguments        := true
+set allow-duplicate-variables   := true
+set windows-shell               := ["nu", "-c"]
+set dotenv-load                 := true
 
 # --- Variables --- #
-project_root    := quote(justfile_directory())
-output_directory := project_root / "dist" # The output artifacts lie here
+project_root        := justfile_directory()
+output_directory    := project_root + "/dist"
 
-system := `uname -m` + "-apple-" + os() # The tuple that swift expects
-
-main_package := ${MAIN_BINARY} # The main artifact of the project
-build_dir := project_root / ".build" # Where the building artifcats are stored
-debug_bin := build_dir / current_platform / "debug" / default_bin
-release_bin := build_dir / current_platform / "release" / default_bin
+system              := `uname -m` + "-apple-" + os()			# Swift target triple (“arm64-apple-macosx”, etc.)
+main_package        := "${MAIN_BINARY}"						# The main artifact
+build_dir           := project_root + "/.build"				# Build output root
+debug_bin           := build_dir + "/" + system + "/debug/" + main_package
+release_bin         := build_dir + "/" + system + "/release/" + main_package
 
 # ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ #
 #      Recipes      #
@@ -24,159 +23,151 @@ release_bin := build_dir / current_platform / "release" / default_bin
 
 [doc('List all available recipes')]
 default:
-    @just --list
+	@just --list
 
+# --- Build & Check --- #
 [doc('Build Swift package in debug mode')]
 [group('build')]
 build target=(system):
-    @echo "🔨 Building Swift package (debug)…"
-    swift build --triple '{{target}}'
+	@echo "🔨 Building Swift package (debug)…"
+	swift build --triple '{{target}}'
 
 [doc('Build Swift package in release mode')]
 [group('build')]
 build-release target=(system):
-    @echo "🚀 Building Swift package (release)…"
-    swift build -c release -Xswiftc "-whole-module-optimization" --triple '{{target}}' -Xlinker "-dead_strip"
+	@echo "🚀 Building Swift package (release)…"
+	swift build -c release --triple '{{target}}' \
+		-Xswiftc "-whole-module-optimization" \
+		-Xlinker "-dead_strip"
 
+# --- Packaging --- #
 [doc('Finalize release binary')]
 [group('packaging')]
 package target=(system) result_directory=(output_directory):
-    just build-release {{target}}
-    @echo "📦 Packaging release binary…"
-    @mkdir -p {{output_directory}}
-    @cp {{release_bin}} "{{result_directory}}/{{main_package}}-{{target}}"
-    @echo "✅ Packaged → {{result_directory}}/{{main_package}}-{{target}}"
+### IMPORT: scripts/build-error.nu 1 ###
+	just build-release {{target}}
+	@echo "📦 Packaging release binary…"
+	@mkdir -p {{result_directory}}
+	@cp {{release_bin}} "{{result_directory}}/{{main_package}}-{{target}}"
+	@echo "✅ Packaged → {{result_directory}}/{{main_package}}-{{target}}"
 
 [doc('Compress binary files in target directory')]
 [group('packaging')]
-compress-binaries target_directory=("."):
-    #!/usr/bin/env bash
+compress directory=(output_directory):
+### IMPORT: scripts/build-error.nu 1 ###
+### IMPORT: scripts/compress.nu 1 ###
 
-    find "${target_directory}" -maxdepth 1 -type f -print0 | while IFS= read -r -d $'\0' file; do
-    # Check if the file command output indicates a binary/executable type
-    if file "$file" | grep -q -E 'executable|ELF|Mach-O|shared object'; then
-        # Get the base filename without the path
-        filename=$(basename "$file")
-
-        # Get the base name without version number
-        basename="${filename%%-*}"
-
-        echo "Archiving binary file: $filename"
-
-        # Create archive with just the basename, no directory structure
-        tar -czf "${file}.tar.gz" \
-            -C "$(dirname "$file")" \
-            -s "|^${filename}$|${basename}|" \
-            "$(basename "$file")"
-    fi
-    done
-
-[doc('Generate SHA256 checksums for files in a directory')]
+[doc('Generate SHA256 checksums for distribution')]
 [group('packaging')]
 checksum directory=(output_directory):
-    @echo "🔒 Creating checksums in {{directory}}…"
-    @find "{{directory}}" -type f \
-        ! -name "checksums.sha256" \
-        ! -name "*.sha256" \
-        -exec sh -c 'sha256sum "$1" > "$1.sha256"' _ {} \;
-    @echo "✅ Checksums created!"
+### IMPORT: scripts/build-error.nu 1 ###
+### IMPORT: scripts/checksum.nu 1 ###
 
-[doc('Run the application in debug mode')]
+[doc('Complete release pipeline: build, checksum, and compress')]
+[group('packaging')]
+release: build-release
+	just checksum
+	just compress
+
+# --- Execution --- #
+[doc('Run application in debug mode')]
 [group('execution')]
 run +args="":
-    @echo "▶️ Running (debug)…"
-    swift run '{{main_package}}' '$@'
+	@echo "▶️ Running {{main_package}} (debug)…"
+	swift run '{{main_package}}' -- '$@'
 
-[doc('Run the application in release mode')]
+[doc('Run application in release mode')]
 [group('execution')]
 run-release +args="":
-    @echo "▶️ Running (release)…"
-    swift run -c release -Xswiftc "-whole-module-optimization" '{{release_bin}}' '$@'
+	@echo "▶️ Running {{main_package}} (release)…"
+	swift run -c release -Xswiftc "-whole-module-optimization" '{{main_package}}' -- '$@'
 
-[doc('Build and install the binary to /usr/local/bin')]
-[group('installation')]
-install: build-release
-    @echo "💾 Installing {{main_package}} → /usr/local/bin…"
-    @cp '{{release_bin}}' /usr/local/bin/{{main_package}}
+# --- Testing --- #
+[doc('Run all tests')]
+[group('testing')]
+test:
+	@echo "🧪 Running tests…"
+	swift test
 
-[doc('Force install the binary')]
-[group('installation')]
-install-force: build-release
-    @echo "💾 Force installing {{main_package}} → /usr/local/bin…"
-    @cp '{{release_bin}}' "/usr/local/bin/{{main_package}}" --force
+[doc('Run tests with additional arguments')]
+[group('testing')]
+test-with +args="":
+	@echo "🧪 Running tests with args: '$@'"
+	swift test -- '$@'
 
+# --- Code Quality --- #
+[doc('Format Swift code')]
+[group('quality')]
+fmt:
+	@echo "💅 Formatting Swift code..."
+	find . -name "*.swift" -type f -exec swift-format format -i {} +
+
+[doc('Check Swift formatting (lint mode)')]
+[group('quality')]
+fmt-check:
+	@echo "💅 Checking Swift formatting..."
+	find . -name "*.swift" -type f -exec swift-format lint {} +
+
+# --- Documentation --- #
+[doc('Generate project documentation')]
+[group('docs')]
+doc:
+	@echo "📚 Generating documentation…"
+	swift package generate-documentation --target '{{main_package}}'
+
+[doc('Generate documentation and open in browser')]
+[group('docs')]
+doc-open: doc
+	@open .build/documentation/{{main_package}}/index.html
+
+# --- Maintenance --- #
 [doc('Extract release notes from changelog for specified tag')]
 [group('maintenance')]
 create-notes raw_tag outfile changelog:
-    #!/usr/bin/env bash
+### IMPORT: scripts/build-error.nu 1 ###
+### IMPORT: scripts/create-notes.nu 1 ###
 
-    tag_v="${raw_tag}"
-    tag="${tag_v#v}" # Remove prefix v
-
-    # Changes header for release notes
-    printf "# What's new\n" > "{{outfile}}"
-
-    if [[ ! -f "{{changelog}}" ]]; then
-      echo "Error: {{changelog}} not found." >&2
-      exit 1
-    fi
-
-    echo "Extracting notes for tag: {{raw_tag}} (searching for section [$tag])"
-    # Use awk to extract the relevant section from the changelog
-    awk -v tag="$tag" '
-      # start printing when we see "## [<tag>]" (escape brackets for regex)
-      $0 ~ ("^## \\[" tag "\\]") { printing = 1; next }
-      # stop as soon as we hit the next "## [" section header
-      printing && /^## \[/       { exit }
-      # otherwise, if printing is enabled, print the current line
-      printing                    { print }
-
-      # Error handling
-      END {
-        if (found_section != 0) {
-          # Print error to stderr
-          print "Error: awk could not find section header ## [" tag "] in " changelog_file > "/dev/stderr"
-          exit 1
-        }
-      }
-    ' "{{changelog}}" >> "{{outfile}}"
-
-    # Check if the output file has content
-    if [[ -s {{outfile}} ]]; then
-      echo "Successfully extracted release notes to '{{outfile}}'."
-    else
-      # Output a warning if no notes were found for the tag
-      echo "Warning: '{{outfile}}' is empty. Is '## [$tag]' present in '{{changelog}}'?" >&2
-    fi
-
-[doc('Format all Swift source files')]
-[group('maintenance')]
-format:
-    find . -name "*.swift" -type f -exec swift-format format -i {} +
-
-[doc('Clean artifacts and resolve dependencies')]
-[group('maintenance')]
-clean:
-    @echo "🧹 Cleaning build artifacts…"
-    swift package clean
-    swift package resolve
-    
 [doc('Update Swift package dependencies')]
 [group('maintenance')]
 update:
-    @echo "🔄 Updating Swift package dependencies…"
-    swift package update
+	@echo "🔄 Updating dependencies..."
+	swift package update
+
+[doc('Clean build artifacts')]
+[group('maintenance')]
+clean:
+	@echo "🧹 Cleaning build artifacts..."
+	swift package clean
+
+# --- Installation --- #
+[doc('Install release binary into /usr/local/bin')]
+[group('installation')]
+install package=(main_package): build-release
+	@echo "💾 Installing {{package}} → /usr/local/bin..."
+	@cp '{{release_bin}}' /usr/local/bin/{{package}}
+
+[doc('Force install binary')]
+[group('installation')]
+install-force package=(main_package): build-release
+	@echo "💾 Force installing {{package}} → /usr/local/bin..."
+	@cp '{{release_bin}}' "/usr/local/bin/{{package}}" --force
 
 # --- Aliases --- #
-alias b := build
-alias br := build-release
-alias p := package
-alias cb := compress-binaries
-alias ch := checksum
-alias r := run
-alias f := format
-alias rr := run-release
-alias cl := clean
-alias i := install
-alias ifo := install-force
-alias up := update
+alias b		:= build
+alias br	:= build-release
+alias p		:= package
+alias rel	:= release
+alias c		:= checksum
+alias cs	:= compress
+alias r		:= run
+alias rr	:= run-release
+alias t		:= test
+alias tw	:= test-with
+alias f		:= fmt
+alias fc	:= fmt-check
+alias d		:= doc
+alias do	:= doc-open
+alias cl	:= clean
+alias up	:= update
+alias i		:= install
+alias ifo	:= install-force
