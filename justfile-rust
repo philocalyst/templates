@@ -45,17 +45,17 @@ build-release target=(system) package=(main_package):
 [doc('Package release binary with completions for distribution')]
 [group('packaging')]
 package target=(system):
-### IMPORT: package.nu 1 ###
+### IMPORT: scripts/package.nu 1 ###
 
 [doc('Generate checksums for distribution files')]
 [group('packaging')]
 checksum directory=(output_directory):
-### IMPORT: checksum.nu 1 ###
+### IMPORT: scripts/checksum.nu 1 ###
 
 [doc('Compress all release packages into tar.gz archives')]
 [group('packaging')]
 compress directory=(output_directory):
-### IMPORT: compress.nu 1 ###
+### IMPORT: scripts/compress.nu 1 ###
 
 [doc('Complete release pipeline: build, checksum, and compress')]
 [group('packaging')]
@@ -130,7 +130,7 @@ doc-open: doc
 [doc('Extract release notes from changelog for specified tag')]
 [group('common')]
 create-notes raw_tag outfile changelog:
-### IMPORT: create-notes.nu 1 ###
+### IMPORT: scripts/create-notes.nu 1 ###
 
 [doc('Update Cargo dependencies')]
 [group('maintenance')]
