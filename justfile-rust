@@ -23,11 +23,13 @@ default:
 	@just --list
 
 # --- Build & Check --- #
-[doc('Check workspace for compilation errors')]
+[doc('Check workspace for compilation and syntax errors')]
 [group('build')]
 check:
 	@echo "🔎 Checking workspace..."
 	cargo check --workspace
+	cargo clippy
+	typos check
 
 [doc('Build workspace in debug mode')]
 [group('build')]

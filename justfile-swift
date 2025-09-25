@@ -26,6 +26,12 @@ default:
 	@just --list
 
 # --- Build & Check --- #
+[doc('Check workspace for compilation and syntax errors')]
+[group('build')]
+check:
+	@echo "🔎 Checking workspace..."
+	typos check
+
 [doc('Build Swift package in debug mode')]
 [group('build')]
 build target=(system):
