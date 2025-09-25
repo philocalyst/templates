@@ -44,7 +44,6 @@ build-release target=(system):
 [doc('Finalize release binary')]
 [group('packaging')]
 package target=(system) result_directory=(output_directory):
-### IMPORT: scripts/build-error.nu 1 ###
 	just build-release {{target}}
 	@echo "📦 Packaging release binary…"
 	@mkdir -p {{result_directory}}
