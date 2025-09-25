@@ -11,7 +11,7 @@ set dotenv-load                 := true
 project_root        := justfile_directory()
 output_directory    := project_root + "/dist"
 
-system              := `uname -m` + "-apple-" + os()			# Swift target triple (“arm64-apple-macosx”, etc.)
+system              := `uname | get machine` + "-apple-" + os()			# Swift target triple (“arm64-apple-macosx”, etc.)
 main_package        := "${MAIN_BINARY}"						# The main artifact
 build_dir           := project_root + "/.build"				# Build output root
 debug_bin           := build_dir + "/" + system + "/debug/" + main_package
