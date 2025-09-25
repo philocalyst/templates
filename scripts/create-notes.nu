@@ -1,15 +1,4 @@
 #!/usr/bin/env nu
-def build_error [msg: string, error?: record] {
-    if ($error != null) {
-        let annotated_error = ($error | upsert msg $'($msg): ($error.msg)')
-        $annotated_error.rendered | print --stderr
-        exit 1
-    } else {
-        (error make --unspanned { msg: $msg }) | print --stderr
-        exit 1
-    }
-}
-
 let tag_v = '{{ raw_tag }}'
 let tag = ($tag_v | str replace --regex '^v' '')  # Remove prefix v
 let outfile = '{{ outfile }}'
