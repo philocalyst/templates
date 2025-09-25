@@ -20,26 +20,26 @@ main_package      := "${MAIN_BINARY}"
 
 [doc('List all available recipes')]
 default:
-    @just --list
+	@just --list
 
 # --- Build & Check --- #
 [doc('Check workspace for compilation errors')]
 [group('build')]
 check:
-    @echo "🔎 Checking workspace..."
-    cargo check --workspace
+	@echo "🔎 Checking workspace..."
+	cargo check --workspace
 
 [doc('Build workspace in debug mode')]
 [group('build')]
 build target="aarch64-apple-darwin" package=(main_package):
-    @echo "🔨 Building workspace (debug)..."
-    cargo build --workspace --bin '{{ main_package }}' --target '{{ target }}'
+	@echo "🔨 Building workspace (debug)..."
+	cargo build --workspace --bin '{{ main_package }}' --target '{{ target }}'
 
 [doc('Build workspace in release mode')]
 [group('build')]
 build-release target=(system) package=(main_package):
-    @echo "🚀 Building workspace (release) for {{ target }}…"
-    cargo build --workspace --release --bin '{{ main_package }}' --target '{{ target }}'
+	@echo "🚀 Building workspace (release) for {{ target }}…"
+	cargo build --workspace --release --bin '{{ main_package }}' --target '{{ target }}'
 
 # --- Packaging --- #
 [doc('Package release binary with completions for distribution')]
@@ -63,71 +63,71 @@ compress directory=(output_directory):
 [doc('Complete release pipeline: build, checksum, and compress')]
 [group('packaging')]
 release: build-release
-    just checksum
+	just checksum
 
 # --- Execution --- #
 [doc('Run application in debug mode')]
 [group('execution')]
 run package=(main_package) +args="":
-    @echo "▶️ Running {{ package }} (debug)..."
-    cargo run --bin '{{ package }}' -- '$@'
+	@echo "▶️ Running {{ package }} (debug)..."
+	cargo run --bin '{{ package }}' -- '$@'
 
 [doc('Run application in release mode')]
 [group('execution')]
 run-release package=(main_package) +args="":
-    @echo "▶️ Running '{{ package }}' (release)..."
-    cargo run --bin '{{ package }}' --release -- '$@'
+	@echo "▶️ Running '{{ package }}' (release)..."
+	cargo run --bin '{{ package }}' --release -- '$@'
 
 # --- Testing --- #
 [doc('Run all workspace tests')]
 [group('testing')]
 test:
-    @echo "🧪 Running workspace tests..."
-    cargo test --workspace
+	@echo "🧪 Running workspace tests..."
+	cargo test --workspace
 
 [doc('Run workspace tests with additional arguments')]
 [group('testing')]
 test-with +args:
-    @echo "🧪 Running workspace tests with args: '$@'"
-    cargo test --workspace -- '$@'
+	@echo "🧪 Running workspace tests with args: '$@'"
+	cargo test --workspace -- '$@'
 
 # --- Code Quality --- #
 [doc('Format all Rust code in the workspace')]
 [group('quality')]
 fmt:
-    @echo "💅 Formatting Rust code..."
-    cargo fmt 
+	@echo "💅 Formatting Rust code..."
+	cargo fmt 
 
 [doc('Check if Rust code is properly formatted')]
 [group('quality')]
 fmt-check:
-    @echo "💅 Checking Rust code formatting..."
-    cargo fmt 
+	@echo "💅 Checking Rust code formatting..."
+	cargo fmt 
 
 [doc('Lint code with Clippy in debug mode')]
 [group('quality')]
 lint:
-    @echo "🧹 Linting with Clippy (debug)..."
-    cargo clippy --workspace -- -D warnings
+	@echo "🧹 Linting with Clippy (debug)..."
+	cargo clippy --workspace -- -D warnings
 
 [doc('Automatically fix Clippy lints where possible')]
 [group('quality')]
 lint-fix:
-    @echo "🩹 Fixing Clippy lints..."
-    cargo clippy --workspace --fix --allow-dirty --allow-staged
+	@echo "🩹 Fixing Clippy lints..."
+	cargo clippy --workspace --fix --allow-dirty --allow-staged
 
 # --- Documentation --- #
 [doc('Generate project documentation')]
 [group('common')]
 doc:
-    @echo "📚 Generating documentation..."
-    cargo doc --workspace --no-deps
+	@echo "📚 Generating documentation..."
+	cargo doc --workspace --no-deps
 
 [doc('Generate and open project documentation in browser')]
 [group('common')]
 doc-open: doc
-    @echo "📚 Opening documentation in browser..."
-    cargo doc --workspace --no-deps --open
+	@echo "📚 Opening documentation in browser..."
+	cargo doc --workspace --no-deps --open
 
 # --- Maintenance --- #
 [doc('Extract release notes from changelog for specified tag')]
@@ -139,27 +139,27 @@ create-notes raw_tag outfile changelog:
 [doc('Update Cargo dependencies')]
 [group('maintenance')]
 update:
-    @echo "🔄 Updating dependencies..."
-    cargo update
+	@echo "🔄 Updating dependencies..."
+	cargo update
 
 [doc('Clean build artifacts')]
 [group('maintenance')]
 clean:
-    @echo "🧹 Cleaning build artifacts..."
-    cargo clean
+	@echo "🧹 Cleaning build artifacts..."
+	cargo clean
 
 # --- Installation --- #
 [doc('Build and install binary to system')]
 [group('installation')]
 install package=(main_package): build-release
-    @echo "💾 Installing {{ main_package }} binary..."
-    cargo install --bin '{{ package }}'
+	@echo "💾 Installing {{ main_package }} binary..."
+	cargo install --bin '{{ package }}'
 
 [doc('Force install binary')]
 [group('installation')]
 install-force package=(main_package): build-release
-    @echo "💾 Force installing {{ main_package }} binary..."
-    cargo install --bin '{{ package }}' --force
+	@echo "💾 Force installing {{ main_package }} binary..."
+	cargo install --bin '{{ package }}' --force
 
 # --- Aliases --- #
 alias b    := build
