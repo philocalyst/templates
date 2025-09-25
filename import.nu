@@ -1,5 +1,4 @@
 #!/usr/bin/env nu
-
 # Script to import external scripts according to an ad-hoc templating language
 
 def main [path: path] {
