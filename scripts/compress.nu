@@ -1,4 +1,7 @@
 #!/usr/bin/env nu
+let prime = '{{ main_package }}'
+let sys = '{{ system }}'
+
 print "🗜️ Compressing release packages..."
 
 let dir = '{{ directory }}'
@@ -21,7 +24,7 @@ try {
 
         try {
             let parent_dir = ($pkg_dir | path dirname)
-            let archive_name = $'($pkg_dir).tar.gz'
+            let archive_name = $'($prime)-($sys).tar.gz'
 
             # Use tar command to create compressed archive
             let result = (run-external 'tar' '-czf' $archive_name '-C' $parent_dir $pkg_name | complete)
