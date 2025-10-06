@@ -22,7 +22,8 @@ release_bin         := build_dir + "/" + system + "/release/" + main_package
 # ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ #
 
 [doc('List all available recipes')]
-default:
+[default]
+list:
 	@just --list
 
 # --- Build & Check --- #

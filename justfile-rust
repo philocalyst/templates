@@ -19,7 +19,8 @@ main_package      := "${MAIN_BINARY}"
 # ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ #
 
 [doc('List all available recipes')]
-default:
+[default]
+list:
 	@just --list
 
 # --- Build & Check --- #
